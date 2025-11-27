@@ -122,7 +122,7 @@ export default function NotesPage() {
     const payload = {
       title: form.title,
       content: form.content,
-      reminderAt: form.reminderAt
+      reminderAt: form.reminderAt && form.reminderAt.trim()
         ? new Date(form.reminderAt).toISOString()
         : null,
       collaborators: form.collaborators
