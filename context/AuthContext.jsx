@@ -67,6 +67,17 @@ export function AuthProvider({ children }) {
   };
 
   const checkAuth = async () => {
+    // Only check if there's a token
+    const currentToken = typeof window !== 'undefined' 
+      ? localStorage.getItem('access_token') 
+      : null;
+    
+    if (!currentToken) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data } = await axios.get('/api/auth/me');
       setUser(data.user);
