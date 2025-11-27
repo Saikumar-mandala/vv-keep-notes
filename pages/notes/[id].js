@@ -64,7 +64,7 @@ export default function NotePage() {
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [redirecting, setRedirecting] = useState(false); // Prevent multiple redirects
 
-  // Check if email from URL is a valid collaborator (when coming from email link)
+  // Check if email from URL matches current user or needs registration/login
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (from !== 'email' || !emailParam || typeof emailParam !== 'string' || !id) {
@@ -75,8 +75,8 @@ export default function NotePage() {
     setCheckingEmail(true);
     const decodedEmail = decodeURIComponent(emailParam);
 
-    // First, check if email is actually a collaborator on this note
-    fetch(`/api/notes/${id}/check-collaborator`, {
+    // Check if email exists in database
+    fetch('/api/users/check-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -85,50 +85,25 @@ export default function NotePage() {
     })
       .then(async (res) => {
         if (!res.ok) {
-          throw new Error('Failed to check collaborator status');
+          throw new Error('Failed to check email');
         }
         return res.json();
       })
-      .then(async (collabData) => {
-        if (!collabData.isCollaborator) {
-          // Email is not a collaborator - show error and deny access
-          setError("You don't have access to this note. This link is not valid for your email address.");
-          setCheckingEmail(false);
-          setLoading(false);
-          return;
-        }
-
-        // Email is a collaborator - now check if email exists in database
-        const emailCheckRes = await fetch('/api/users/check-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: decodedEmail }),
-        });
-
-        if (!emailCheckRes.ok) {
-          throw new Error('Failed to check email');
-        }
-
-        const emailData = await emailCheckRes.json();
+      .then((emailData) => {
         if (!emailData.exists) {
-          // Email is a collaborator but doesn't exist - redirect to register page
-          setRedirecting(true); // Set flag to prevent multiple redirects
+          // Email doesn't exist - redirect to register page
+          setRedirecting(true);
           const redirectUrl = `/register?email=${encodeURIComponent(decodedEmail)}&note=${encodeURIComponent(id)}&from=email`;
-          // Use router.push instead of window.location.href to avoid full page reload
           router.push(redirectUrl);
           return;
         }
-        // Email is a collaborator and exists - proceed with normal auth check
+        // Email exists - proceed with normal auth check
         setCheckingEmail(false);
       })
       .catch((err) => {
-        console.error('Error checking collaborator:', err);
-        setError("Failed to verify access. Please contact the note owner.");
+        console.error('Error checking email:', err);
+        // On error, just proceed with normal flow
         setCheckingEmail(false);
-        setLoading(false);
-        setCheckingAuth(false); // Stop auth checking to prevent redirect loop
       });
   }, [from, emailParam, id, router]);
 
