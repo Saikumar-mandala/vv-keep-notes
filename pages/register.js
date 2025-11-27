@@ -121,37 +121,16 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await axios.post('/api/auth/register', validation.sanitized);
-      // Auto-login after registration if token is provided
-      if (res.data.token && res.data.user) {
-        saveToken(res.data.token);
-        // The AuthContext will update user state via checkAuth, but we can also trigger it
-        // Wait a bit longer to ensure token is saved and user state is updated
-        setMsg('Account created successfully! Redirecting...');
-        
-        // Wait for token to be saved and user state to update
+      // Redirect to login page after successful registration
+      setMsg('Account created successfully! Please login.');
+      
+      // Redirect to login page
+      if (from === 'email' && noteId && emailParam) {
         setTimeout(() => {
-          // If coming from email link, redirect to note with email parameter for editing
-          if (from === 'email' && noteId && emailParam) {
-            const decodedNoteId = decodeURIComponent(noteId);
-            const decodedEmail = decodeURIComponent(emailParam);
-            router.push(`/notes/${decodedNoteId}?from=email&email=${encodeURIComponent(decodedEmail)}`);
-          } else if (from === 'email' && noteId) {
-            // Fallback if email param is missing
-            router.push(`/notes/${decodeURIComponent(noteId)}`);
-          } else {
-            router.push('/');
-          }
-        }, 800); // Increased timeout to ensure state is updated
+          router.push(`/login?email=${encodeURIComponent(form.email)}&note=${encodeURIComponent(noteId)}&from=email`);
+        }, 700);
       } else {
-        // Fallback: redirect to login if no token (shouldn't happen)
-        setMsg('Registered — please login');
-        if (from === 'email' && noteId) {
-          setTimeout(() => {
-            router.push(`/login?email=${encodeURIComponent(form.email)}&note=${encodeURIComponent(noteId)}&from=email`);
-          }, 700);
-        } else {
-          setTimeout(() => router.push('/login'), 700);
-        }
+        setTimeout(() => router.push('/login'), 700);
       }
     } catch (error) {
       const errorMsg = error?.response?.data?.error || error.message || 'Register failed';
